@@ -92,6 +92,13 @@
     - include_role:
         name: enmasse
         tasks_from: upgrade
+      when: target_version.stdout in ["release-1.3.0", "release-1.4.0", "release-1.4.0-rc7"]
+
+    # Alerts upgrade
+    - include_role:
+        name: backup
+        tasks_from: upgrade_to_1_4_2
+      when: target_version.stdout == "release-1.4.1"
 
 #Update product version (should always be last)
 - import_playbook: "../generate-customisation-inventory.yml"

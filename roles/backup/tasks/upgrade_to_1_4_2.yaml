@@ -1,0 +1,12 @@
+---
+- name: check if backup alerts are installed
+  shell: "oc get prometheusrule backup-monitoring-alerts -n {{ monitoring_namespace }}"
+  register: check_alerts
+
+- name: add alert for failing cronjobs
+  shell: "oc patch prometheusrule backup-monitoring-alerts --type=json --patch='[{\"op\": \"add\", \"path\": \"/data/POSTGRES_VERSION\", \"value\": \"{{ 10 | b64encode }}\"}]' -n {{ monitoring_namespace }}"
+  when: check_alerts.rc == 0
+
+- debug:
+    msg: "Backup monitoring alerts are not installed"
+  when: check_alerts.rc != 0
