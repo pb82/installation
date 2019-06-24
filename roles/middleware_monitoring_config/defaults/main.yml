@@ -6,6 +6,7 @@ threescale_namespace: "{{ns_prefix | default('')}}3scale"
 jobs:
 - 3scale
 - openshift_monitoring_federation
+- blackbox
 
 config_secret_contents_file: integreatly-additional.yaml
 prometheus_cr_name: application-monitoring
