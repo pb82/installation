@@ -26,6 +26,24 @@
       dest: "/tmp/{{ item }}.yaml"
     with_items: "{{ jobs }}"
 
+  - name: Check if scrape config secret already exists
+    shell: oc get secret {{ additional_scrape_config_name }}
+    failed_when: false
+    register: additional_scrape_config_name_cmd
+
+  - name: Get existing scrape config
+    shell: "oc get secret additional-scrape-configs -o json | jq '.data[\"integreatly-additional.yaml\"]' -r | base64 --decode"
+    register: existing_scrape_config
+    when: additional_scrape_config_name_cmd.rc == 0
+
+  - name: Create a job for the existing scrape config to be inclided
+    copy: content="{{ existing_scrape_config.stdout }}" dest=/tmp/existing.yaml
+    when: additional_scrape_config_name_cmd.rc == 0
+
+  - name: Delete existing secret to replace it with the new config
+    shell: oc delete secret {{ additional_scrape_config_name }}
+    when: additional_scrape_config_name_cmd.rc == 0
+
   - set_fact:
       yaml_files: "{{ jobs | map('regex_replace', '^(.*)$', '/tmp/\\1.yaml') | list }}"
 
@@ -34,6 +52,7 @@
 
   - name: Create additional scrape config secret
     shell: oc create secret generic {{ additional_scrape_config_name }} --from-file=/tmp/{{ config_secret_contents_file }} -n {{ middleware_monitoring_namespace }} --dry-run -o yaml | oc apply -f -
+    when: additional_scrape_config_name_cmd.rc != 0
 
   - name: Check if the middleware monitoring prometheus CR is available
     shell: oc get prometheus application-monitoring -n {{ middleware_monitoring_namespace }}
